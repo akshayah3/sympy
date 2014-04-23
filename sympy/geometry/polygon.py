@@ -663,15 +663,16 @@ class Polygon(GeometryEntity):
         [Point(2/3, 0), Point(9/5, 1/5), Point(7/3, 1), Point(1/3, 1)]
 
         """
-        res = []
+        
         res = [i for i in self.sides if i in o]
         if res is not None:
-            return res
-        else:    
-            inter = self.intersection(o)
-            if inter is not None:
-                res.extend(inter)
-            return list(set(res))
+            return res    
+        else:
+            for side in self.sides:
+                inter = side.intersection(o)
+                if inter is not None:
+                    res.extend(inter)
+            return (res)
 
     def distance(self, o):
         """

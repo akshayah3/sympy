@@ -727,6 +727,9 @@ def test_polygon():
     assert p5.encloses_point(Point(1, 3))
     assert p5.encloses_point(Point(0, 0)) is False
     assert p5.encloses_point(Point(4, 0)) is False
+    assert p1.intersection(Ray(Point(0, 0), Point(3, -1))) == \
+        [Segment(Point(0, 0), Point(3, -1))]
+    assert p1.intersection(Ray(Point(0, 0), Point(7, 9)))    
     p5.plot_interval('x') == [x, 0, 1]
     assert p5.distance(
         Polygon(Point(10, 10), Point(14, 14), Point(10, 14))) == 6 * sqrt(2)

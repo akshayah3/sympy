@@ -22,33 +22,35 @@ from sympy.core.evaluate import global_evaluate
 
 
 class Point(GeometryEntity):
-    """A point in a 2-dimensional Euclidean space.
+    """A point in both 2-dimensional and 3-dimensional Euclidean space.
 
     Parameters
     ==========
 
-    coords : sequence of 2 coordinate values.
+    coords : sequence of 2 or 3 coordinate values.
 
     Attributes
     ==========
 
     x
     y
+    z
     length
 
     Raises
     ======
 
     NotImplementedError
-        When trying to create a point with more than two dimensions.
+        When trying to create a point with more than three dimensions.
         When `intersection` is called with object other than a Point.
     TypeError
-        When trying to add or subtract points with different dimensions.
+        When trying to add or subtract points with different dimensions where 
+        any point is having a dimension greater than 3.
 
     Notes
     =====
 
-    Currently only 2-dimensional points are supported.
+    Currently only 2-dimensional and 3-dimensional points are supported.
 
     See Also
     ========
@@ -62,11 +64,19 @@ class Point(GeometryEntity):
     >>> from sympy.abc import x
     >>> Point(1, 2)
     Point(1, 2)
+    
     >>> Point([1, 2])
     Point(1, 2)
+    
     >>> Point(0, x)
     Point(0, x)
-
+    
+    >>> Point(1,2,3)
+    Point(1,2,3)
+    
+    >>> Point(1,x,2)
+    Point(1,x,2)
+    
     Floats are automatically converted to Rational unless the
     evaluate flag is False:
 
@@ -87,9 +97,9 @@ class Point(GeometryEntity):
         else:
             if iterable(args[0]):
                 args = args[0]
-            if len(args) != 2:
+            if len(args) > 3 or len(args) == 1:
                 raise NotImplementedError(
-                    "Only two dimensional points currently supported")
+                    "only 2-D and 3-D points are currently supported")
         coords = Tuple(*args)
         if check:
             if any(a.is_number and im(a) for a in coords):
@@ -107,12 +117,14 @@ class Point(GeometryEntity):
         ts, to = type(self), type(other)
         if ts is not to:
             return False
+        self, other = self.convert(other)    
         return self.args == other.args
 
     def __lt__(self, other):
         return self.args < other.args
 
     def __contains__(self, item):
+        self, item = self.convert(item)
         return item == self
 
     @property
@@ -144,7 +156,26 @@ class Point(GeometryEntity):
         1
         """
         return self.args[1]
+        
+    @property
+    def z(self):
+        """
+        Returns the Z coordinate of the Point if provided otherwise it is taken
+        as 0 by default.
 
+        Examples
+        ========
+
+        >>> from sympy import Point
+        >>> p = Point(0, 1, 2)
+        >>> p.z
+        2
+        """
+        if len(self.args) == 2:
+            return S.Zero
+        else:    
+            return self.args[2]  
+            
     @property
     def length(self):
         """
@@ -159,7 +190,99 @@ class Point(GeometryEntity):
         0
         """
         return S.Zero
-
+    
+    def point_3d(self):
+        """
+        Converts any given point into a 3-D point
+        
+        Examples
+        ========
+        
+        >>> from sympy import Point
+        >>> p = Point(0, 1)
+        >>> p.point_3d()
+        Point(0, 1, 0)
+        
+        >>> p = Point(1,1,1)
+        >>> p.point_3d()
+        Point(1, 1, 1)
+        """
+        if len(self.args) == 3:
+            return self
+        else:
+            a = list(self.args)
+            a.append(S.Zero)
+            return Point(a)
+            
+    def convert(self, point):
+        """
+        This method converts a point accordingly to a different dimension
+        
+        Examples
+        ========
+        
+        >>>from sympy import Point
+        >>> a = Point(1, 2, 3)
+        >>> a.convert(Point(1, 2, 4))
+        Point(1, 2, 3) , Point(1, 2, 4)
+        
+        >>> a = Point(1, 2, 3)
+        >>> a.convert(Point(1, 2))
+        Point(1, 2, 3) , Point(1, 2, 0)
+        
+        >>> a = Point(1, 2)
+        >>> a.convert(Point(2, 1))
+        Point(1, 2) , Point(2, 1)
+        """
+        point = Point(point)
+        if len(self.args) == len(point.args):
+            return self, point
+            
+        elif self.args > point.args:
+            a = list(point.args)
+            a.append(S.Zero)
+            point = Point(a)
+            return self , point
+        else:
+            a = list(self.args)
+            a.append(S.Zero)
+            self = Point(a)
+            return self, point
+            
+    def direction_ratio(self, point):
+        """
+        Returns the Direction Ratio between two 3-D points
+        
+        Examples
+        ========
+        
+        >>> from sympy import Point
+        >>> p1 = Point(1, 2, 3)
+        >>> p1.direction_ratio(Point(2, 3, 5))
+        [1, 1, 2]
+        
+        >>> p1.direction_ratio(Point(1, 2))
+        [0, 0, -3]
+        """
+        point = Point(point)
+        return [(point.x - self.x),(point.y - self.y),(point.z - self.z)]
+        
+    def direction_cosine(self, point):
+        """
+        Returns the Direction Cosine between two 3-D points
+        
+        Examples
+        ========
+        
+        >>> from sympy import Point
+        >>> p3, p4 = Point(0, 1, -1), Point(-1, 2)
+        >>> p3.direction_cosine(p4)
+        [-sqrt(3)/3, sqrt(3)/3, sqrt(3)/3]
+        """
+        a = self.direction_ratio(point)
+        b = sqrt(sum([i**2 for i in a]))
+        return [i/b for i in a]
+        
     def is_collinear(*points):
         """Is a sequence of points collinear?
 
@@ -214,6 +337,24 @@ class Point(GeometryEntity):
         >>> Point.is_collinear(p1, p2, p3, p5)
         False
 
+        >>> p1 = Point(2, 2, 2)
+
+        >>> p2 = Point(-3, -3, -3)
+
+        >>> p3 = Point(0, 0, 0)
+
+        >>> p4 = Point(1, 1, 1)
+
+        >>> p5 = Point(1, 2, 3)
+
+        >>> p1.is_collinear( p2, p3, p4)
+
+        True
+
+        >>> p1.is_collinear(p2, p3, p4, p5)
+
+        False
+
         """
         # Coincident points are irrelevant and can confuse this algorithm.
         # Use only unique points.
@@ -225,24 +366,33 @@ class Point(GeometryEntity):
             return False
         if len(points) <= 2:
             return True  # two points always form a line
-        points = [Point(a) for a in points]
+        points = [Point(a).point_3d() for a in points]
 
         # XXX Cross product is used now, but that only extends to three
         #     dimensions. If the concept needs to extend to greater
         #     dimensions then another method would have to be used
-        p1 = points[0]
-        p2 = points[1]
+        """p1 = points[0].point_3d()
+        p2 = points[1].point_3d()
         v1 = p2 - p1
-        x1, y1 = v1.args
-        rv = True
-        for p3 in points[2:]:
-            x2, y2 = (p3 - p1).args
-            test = simplify(x1*y2 - y1*x2).equals(0)
-            if test is False:
+        x1, y1, z1= v1.args
+        rv = True"""
+        for i in xrange(0, len(points) - 3):
+
+            pv1 = [j - k for j, k in zip(points[i].args,
+
+                                         points[i + 1].args)]
+
+            pv2 = [j - k for j, k in zip(points[i + 1].args,
+
+                                         points[i + 2].args)]
+
+            rank = Matrix([pv1, pv2]).rank()
+
+            if(rank != 1):
+
                 return False
-            if rv and not test:
-                rv = test
-        return rv
+
+        return True
 
     def is_concyclic(*points):
         """Is a sequence of points concyclic?
@@ -290,6 +440,11 @@ class Point(GeometryEntity):
         >>> Point.is_concyclic(p1, p2, p3, p4)
         False
 
+        >>> p1, p2 = Point(-1, 0, 1), Point(1, 0, 0)
+        >>> p3, p4 = Point(0, 1, -1), Point(-1, 2)
+        >>> Point.is_concyclic(p1, p2, p3)
+        False
+        
         """
         if len(points) == 0:
             return False
@@ -299,7 +454,7 @@ class Point(GeometryEntity):
         if len(points) == 3:
             return (not Point.is_collinear(*points))
 
-        try:
+        """try:
             from .ellipse import Circle
             c = Circle(points[0], points[1], points[2])
             for point in points[3:]:
@@ -309,7 +464,105 @@ class Point(GeometryEntity):
         except GeometryError:
             # Circle could not be created, because of collinearity of the
             # three points passed in, hence they are not concyclic.
-            return False
+            return False"""
+            
+    def coplanar_points(*points):
+
+        """
+
+        This function tests whether passed points are coplanar or not.
+
+
+
+        It uses the fact that the triple scalar product of three vectors
+
+        vanishes iff the vectors are coplanar. Which means that the volume
+
+        of the solid described by them will have to be zero for coplanarity.
+
+
+
+        Parameters
+
+        ==========
+
+
+
+        A set of points 3D points
+
+
+
+        Returns
+
+        =======
+
+
+
+        boolean
+
+
+
+        Examples
+
+        ========
+
+
+
+        >>> from sympy import Point 
+
+        >>> p1 = Point(1, 2, 2)
+
+        >>> p2 = Point(2, 7, 2)
+
+        >>> p3 = Point(0, 0, 2)
+
+        >>> p4 = Point(1, 1, 2)
+
+        >>> p5 = Point(1, 2, 2)
+
+        >>> coplanar_points(p1, p2, p3, p4, p5)
+
+        True
+
+        """
+
+
+
+        if(len(points) == 0):
+
+            raise Exception("No parameters provided")
+
+        points = [Point(point).point_3d() for point in points]
+
+        if(len(points) < 4):
+
+            return True  # These cases are always True
+
+        for i in xrange(0, len(points) - 3):
+
+            pv1 = [j - k for j, k in zip(points[i].args, points[i + 1].args)]
+
+            pv2 = [j - k for j, k in zip(
+
+                points[i + 1].args,
+
+                points[i + 2].args)]
+
+            pv3 = [j - k for j, k in zip(
+
+                points[i + 2].args,
+
+                points[i + 3].args)]
+
+            pv1, pv2, pv3 = Matrix(pv1), Matrix(pv2), Matrix(pv3)
+
+            stp = pv1.dot(pv2.cross(pv3))
+
+            if stp != 0:
+
+                return False
+
+            return True        
 
     def distance(self, p):
         """The Euclidean distance from self to point p.
@@ -336,6 +589,16 @@ class Point(GeometryEntity):
         >>> p1, p2 = Point(1, 1), Point(4, 5)
         >>> p1.distance(p2)
         5
+        
+        >>> from sympy.geometry import Point
+        >>> p1, p2 = Point(1, 1, 2), Point(4, 5, 6)
+        >>> p1.distance(p2)
+        sqrt(41)
+        
+        >>> from sympy.geometry import Point
+        >>> p1, p2 = Point(1, 1, 1), Point(4, 5)
+        >>> p1.distance(p2)
+        sqrt(26)
 
         >>> from sympy.abc import x, y
         >>> p3 = Point(x, y)
@@ -344,7 +607,8 @@ class Point(GeometryEntity):
 
         """
         p = Point(p)
-        return sqrt(sum([(a - b)**2 for a, b in zip(self.args, p.args)]))
+        a = self.direction_ratio(p)
+        return sqrt(sum(i**2 for i in a))
 
     def midpoint(self, p):
         """The midpoint between self and point p.
@@ -371,8 +635,16 @@ class Point(GeometryEntity):
         >>> p1, p2 = Point(1, 1), Point(13, 5)
         >>> p1.midpoint(p2)
         Point(7, 3)
+        
+        >>> p1, p2 = Point(1,2,3), Point(1,2,4)
+        >>>p1.midpoint(p2)
+        Point(1, 2, 3.5)
+        
+        >>>p1, p2 = Point(1, 2, 3), Point(1, 2)
+        >>> p1.midpoint(p2) = Point(1, 2, 3/2)
 
         """
+        self , p = self.convert(p)
         return Point([simplify((a + b)*S.Half) for a, b in zip(self.args, p.args)])
 
     def evalf(self, prec=None, **options):
@@ -396,7 +668,11 @@ class Point(GeometryEntity):
         Point(1/2, 3/2)
         >>> p1.evalf()
         Point(0.5, 1.5)
-
+                
+        >>> p2 = Point(1/2, 3/2, 4/5)
+        >>> p2.evalf()
+        Point(0.5, 1.5, 0.8)
+        
         """
         if prec is None:
             coords = [x.evalf(**options) for x in self.args]
@@ -477,9 +753,9 @@ class Point(GeometryEntity):
             rv += pt
         return rv
 
-    def scale(self, x=1, y=1, pt=None):
+    def scale(self, x=1, y=1, z=1, pt=None):
         """Scale the coordinates of the Point by multiplying by
-        ``x`` and ``y`` after subtracting ``pt`` -- default is (0, 0) --
+        ``x`` , ``y`` and ``z`` after subtracting ``pt`` -- default is (0, 0, 0) --
         and then adding ``pt`` back again (i.e. ``pt`` is the point of
         reference for the scaling).
 
@@ -500,12 +776,15 @@ class Point(GeometryEntity):
 
         """
         if pt:
-            pt = Point(pt)
-            return self.translate(*(-pt).args).scale(x, y).translate(*pt.args)
-        return Point(self.x*x, self.y*y)
+            pt = pt.point_3d()
+            self = self.point_3d()
+            self = self.__sub__(pt)
+            a = Point((self.x)*x, (self.y)*y, (self.z)*z)
+            return a.__add__(pt)
+        return Point(self.x*x, self.y*y, self.z*z)
 
-    def translate(self, x=0, y=0):
-        """Shift the Point by adding x and y to the coordinates of the Point.
+    def translate(self, x=0, y=0, z=0):
+        """Shift the Point by adding x , y and z to the coordinates of the Point.
 
         See Also
         ========
@@ -523,9 +802,12 @@ class Point(GeometryEntity):
         Point(2, 3)
         >>> t + Point(2, 2)
         Point(2, 3)
+        >>> a = Point(1, 2)
+        >>> a.translate(0, 0, 3)
+        Point(1, 2, 3)
 
         """
-        return Point(self.x + x, self.y + y)
+        return Point(self.x + x, self.y + y, self.z + z)
 
     def transform(self, matrix):
         """Return the point after applying the transformation described
@@ -543,10 +825,17 @@ class Point(GeometryEntity):
     def dot(self, p2):
         """Return dot product of self with another Point."""
         p2 = Point(p2)
-        x1, y1 = self.args
-        x2, y2 = p2.args
-        return x1*x2 + y1*y2
-
+        if len(self.args) != len(p2.args):
+            x1, y1 = self.args
+            x2, y2 = p2.args
+            return x1*x2 + y1*y2
+        else:
+            self = self.point_3d()
+            p2 = p2.point_3d()
+            x1, y1, z1 = self.args
+            x2, y2, z2 = p2.args
+            return x1*x2 + y1*y2 + z1*z2
+            
     def __add__(self, other):
         """Add other to self by incrementing self's coordinates by those of other.
 
@@ -562,15 +851,28 @@ class Point(GeometryEntity):
                 return Point(*[simplify(a + b) for a, b in
                                zip(self.args, other.args)])
             else:
-                raise TypeError(
-                    "Points must have the same number of dimensions")
+                self = self.point_3d()
+                other = other.point_3d()
+                return Point(*[simplify(a + b) for a, b in
+                               zip(self.args, other.args)])
         else:
             raise ValueError('Cannot add non-Point, %s, to a Point' % other)
 
     def __sub__(self, other):
         """Subtract two points, or subtract a factor from this point's
         coordinates."""
-        return self + (-other)
+        if isinstance(other, Point):
+            if len(other.args) == len(self.args):
+                return Point(*[simplify(a - b) for a, b in
+                               zip(self.args, other.args)])
+            else:
+                self = self.point_3d()
+                other = other.point_3d()
+                return Point(*[simplify(a - b) for a, b in
+                               zip(self.args, other.args)])
+        else:
+            raise ValueError('Cannot substract non-Point,'
+                      '%s, to a Point' % other)
 
     def __mul__(self, factor):
         """Multiply point's coordinates by a factor."""
