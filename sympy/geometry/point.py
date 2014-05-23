@@ -551,7 +551,7 @@ class Point(Point3D):
         >>> p1.midpoint(p2)
         Point(7, 3)
         >>>p1, p2 = Point(1, 2), Point3D(1, 2, 4)
-        >>> p1.midpoint(p2) = Point(1, 2, 2)
+        >>> p1.midpoint(p2) = Point3D(1, 2, 2)
         
         """
         if isinstance(p, Point):
