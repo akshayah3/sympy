@@ -38,11 +38,7 @@ class LinearEntity3D(GeometryEntity):
     Notes
     =====
 
-    This is an abstract class and is not meant to be instantiated.
-    Subclasses should implement the following methods:
-
-    * __eq__
-    * contains
+    This is a base class and is not meant to be instantiated.
     """
 
     def __new__(cls, p1, p2, **kwargs):
@@ -811,13 +807,6 @@ class LinearEntity3D(GeometryEntity):
             None if a determination cannot be made."""
         raise NotImplementedError()
 
-    def __eq__(self, other):
-        """Subclasses should implement this method."""
-        raise NotImplementedError()
-
-    def __hash__(self):
-        return super(LinearEntity3D, self).__hash__()
-
 class Line3D(LinearEntity3D):
     """An infinite 3D line in space.
 
@@ -989,12 +978,6 @@ class Line3D(LinearEntity3D):
         if not isinstance(other, Line3D):
             return False
         return Point3D.is_collinear(self.p1, other.p1, self.p2, other.p2)
-
-    def __eq__(self, other):
-        """Return True if other is the same object as self, or False otherwise."""
-        if not isinstance(other, Line3D):
-            return False
-        return self.p1 == other.p1 and self.p2 == other.p2
 
 class Ray3D(LinearEntity3D):
     """
@@ -1288,12 +1271,6 @@ class Ray3D(LinearEntity3D):
             return False
         return self.source == other.source and other.p2 in self
 
-    def __eq__(self, other):
-        """Is the other GeometryEntity equal to this Ray?"""
-        if not isinstance(other, Ray3D):
-            return False
-        return (self.source == other.source) and (other.p2 == self.p2)
-
 class Segment3D(LinearEntity3D):
     """A undirected line segment in a 3D space.
 
@@ -1478,7 +1455,7 @@ class Segment3D(LinearEntity3D):
                     return False
         return False
 
-    def __eq__(self, other):
+    def equal(self, other):
         """Is the other GeometryEntity equal to this Segment?"""
         if not isinstance(other, Segment3D):
             return False
