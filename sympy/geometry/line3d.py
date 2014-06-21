@@ -23,7 +23,7 @@ from .point3d import Point3D
 from .util import _symbol
 
 class LinearEntity3D(GeometryEntity):
-    """An abstract LinearEntity3D class for all linear entities (line, ray and segment)
+    """A base class for all linear entities (line, ray and segment)
     in a 3-dimensional Euclidean space.
 
     Attributes
@@ -880,9 +880,9 @@ class Line3D(LinearEntity3D):
         Examples
         ========
 
-        >>> from sympy import Point, Line
-        >>> p1, p2 = Point(0, 0), Point(5, 3)
-        >>> l1 = Line(p1, p2)
+        >>> from sympy import Point3D, Line3D
+        >>> p1, p2 = Point3D(0, 0, 0), Point3D(5, 3, 1)
+        >>> l1 = Line3D(p1, p2)
         >>> l1.plot_interval()
         [t, -5, 5]
 
