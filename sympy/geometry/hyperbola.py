@@ -210,7 +210,7 @@ class Hyperbola(GeometryEntity):
 
     @property
     def major(self):
-        """Longer axis of the ellipse (if it can be determined) else hradius.
+        """Longer axis of the Hyperbola (if it can be determined) else hradius.
 
         Returns
         =======
@@ -225,7 +225,7 @@ class Hyperbola(GeometryEntity):
         Examples
         ========
 
-        >>> from sympy import Point, Ellipse, Symbol
+        >>> from sympy import Point, Hyperbola, Symbol
         >>> p1 = Point(0, 0)
         >>> e1 = Hyperbola(p1, 3, 1)
         >>> e1.major
