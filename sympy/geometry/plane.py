@@ -289,7 +289,7 @@ class Plane(GeometryEntity):
         if isinstance(l, LinearEntity3D):
             a = Matrix(l.direction_ratio)
             b = Matrix(self.normal_vector)
-            if sum(list(a.cross(b))) == 0:
+            if a.cross(b).is_zero:
                 return True
             else:
                 return False
